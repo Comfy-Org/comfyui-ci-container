@@ -41,14 +41,15 @@ RUN mkdir -p /app && chown -R pwuser:pwuser /app /ComfyUI
 # Switch to non-root user
 USER pwuser
 
+# Set up user-installed packages paths before pip install
+ENV PATH="/home/pwuser/.local/bin:${PATH}"
+ENV PYTHONPATH="/home/pwuser/.local/lib/python3.12/site-packages:${PYTHONPATH}"
+
 # Install Python dependencies as pwuser (all cached in image)
 RUN pip3 install --user --upgrade pip && \
     pip3 install --user torch torchvision torchaudio \
       --index-url https://download.pytorch.org/whl/cpu && \
     pip3 install --user -r /ComfyUI/requirements.txt && \
     pip3 install --user wait-for-it
-
-# Ensure user-installed packages are in PATH
-ENV PATH="/home/pwuser/.local/bin:${PATH}"
 
 WORKDIR /app
