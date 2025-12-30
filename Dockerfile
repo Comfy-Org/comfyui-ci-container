@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y git && \
     https://github.com/comfyanonymous/ComfyUI.git /ComfyUI
 
 # Create venv and install all Python dependencies
-RUN uv venv /opt/venv && \
-    uv pip install --python /opt/venv/bin/python \
-      torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    uv pip install --python /opt/venv/bin/python -r /ComfyUI/requirements.txt && \
-    uv pip install --python /opt/venv/bin/python wait-for-it
+ENV VIRTUAL_ENV=/opt/venv
+RUN uv venv $VIRTUAL_ENV && \
+    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+    uv pip install -r /ComfyUI/requirements.txt && \
+    uv pip install wait-for-it
 
 # Stage 2: Final image with Playwright
 FROM mcr.microsoft.com/playwright:v1.57.0-noble
