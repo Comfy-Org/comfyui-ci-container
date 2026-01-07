@@ -1,0 +1,60 @@
+name: "Update Frontend Container Reference"
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Container version (e.g., 0.0.9)'
+        required: true
+        type: string
+
+jobs:
+  update-frontend:
+    runs-on: ubuntu-latest
+    # Skip pre-releases unless manually triggered
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    steps:
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Checkout ComfyUI_frontend
+        uses: actions/checkout@v4
+        with:
+          repository: Comfy-Org/ComfyUI_frontend
+          token: ${{ secrets.FRONTEND_PAT }}
+
+      - name: Get current version
+        id: current
+        run: |
+          CURRENT=$(grep -oP 'comfyui-ci-container:\K[0-9.]+' .github/workflows/ci-tests-e2e.yaml | head -1 || echo "unknown")
+          echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Update container references
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          # Update all container references in both workflow files
+          sed -i "s|ghcr.io/comfy-org/comfyui-ci-container:[0-9.]*|ghcr.io/comfy-org/comfyui-ci-container:${VERSION}|g" \
+            .github/workflows/ci-tests-e2e.yaml \
+            .github/workflows/pr-update-playwright-expectations.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.FRONTEND_PAT }}
+          branch: automation/ci-container-${{ steps.version.outputs.version }}
+          title: "chore: bump CI container to ${{ steps.version.outputs.version }}"
+          body: |
+            Updates CI container from `${{ steps.current.outputs.current_version }}` to `${{ steps.version.outputs.version }}`
+
+            **Triggered by:** [Release ${{ steps.version.outputs.version }}](${{ github.event.release.html_url || 'Manual workflow dispatch' }})
+          labels: automation
+          commit-message: "chore: bump CI container to ${{ steps.version.outputs.version }}"
