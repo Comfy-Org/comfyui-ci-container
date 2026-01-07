@@ -7,7 +7,7 @@ ARG COMFYUI_VERSION=v0.5.1
 # Clone ComfyUI
 RUN apt-get update && apt-get install -y git && \
     git clone --depth 1 --branch ${COMFYUI_VERSION} \
-    https://github.com/comfyanonymous/ComfyUI.git /ComfyUI
+    https://github.com/comfy-org/ComfyUI.git /ComfyUI
 
 # Create venv and install all Python dependencies
 ENV VIRTUAL_ENV=/opt/venv
