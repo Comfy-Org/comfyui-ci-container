@@ -1,8 +1,9 @@
 name: "Update Frontend Container Reference"
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
       version:
@@ -13,14 +14,13 @@ on:
 jobs:
   update-frontend:
     runs-on: ubuntu-latest
-    # Skip pre-releases unless manually triggered
-    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     steps:
       - name: Get version
         id: version
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION="${{ github.ref_name }}"
           else
             VERSION="${{ inputs.version }}"
           fi
@@ -55,6 +55,6 @@ jobs:
           body: |
             Updates CI container from `${{ steps.current.outputs.current_version }}` to `${{ steps.version.outputs.version }}`
 
-            **Triggered by:** [Release ${{ steps.version.outputs.version }}](${{ github.event.release.html_url || 'Manual workflow dispatch' }})
+            **Triggered by:** [Tag ${{ steps.version.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ steps.version.outputs.version }})
           labels: automation
           commit-message: "chore: bump CI container to ${{ steps.version.outputs.version }}"
