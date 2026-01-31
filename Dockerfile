@@ -2,7 +2,7 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0
 
-ARG COMFYUI_VERSION=v0.5.1
+ARG COMFYUI_VERSION=v0.11.1
 
 # Clone ComfyUI
 RUN apt-get update && apt-get install -y git && \
