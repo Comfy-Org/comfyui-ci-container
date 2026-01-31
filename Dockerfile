@@ -17,7 +17,7 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
     uv pip install wait-for-it
 
 # Stage 2: Final image with Playwright
-FROM mcr.microsoft.com/playwright:v1.57.0-noble
+FROM mcr.microsoft.com/playwright:v1.58.1-noble
 
 # Install pnpm
 RUN npm install -g pnpm
