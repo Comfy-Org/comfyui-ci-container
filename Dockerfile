@@ -19,14 +19,21 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
 # Stage 2: Final image with Playwright
 FROM mcr.microsoft.com/playwright:v1.58.1-noble
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Install fonts to match GitHub Actions runner
+# Install fonts to match GitHub Actions runner (curl/unzip needed by the fnm installer)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+      ca-certificates curl unzip \
       fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-ubuntu && \
     rm -rf /var/lib/apt/lists/*
+
+# Node follows the caller's .nvmrc via fnm (25 pre-installed as the offline
+# default; .nvmrc wins at runtime via `fnm use`). Corepack manages pnpm from the
+# repo's packageManager field. Node 25 no longer bundles Corepack, so install it.
+ENV FNM_DIR=/opt/fnm PATH="/opt/fnm/aliases/default/bin:$PATH"
+RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir /usr/local/bin --skip-shell \
+ && fnm install 25 && fnm default 25 \
+ && npm i -g corepack@latest && corepack enable \
+ && chmod -R a+w /opt/fnm
 
 # Copy venv and ComfyUI from builder
 COPY --from=builder /opt/venv /opt/venv
