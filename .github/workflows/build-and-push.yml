@@ -154,6 +154,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Read component versions
+        id: component_versions
+        run: |
+          COMFYUI_VERSION=$(sed -nE 's/^ARG COMFYUI_VERSION=(v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p' Dockerfile)
+          PLAYWRIGHT_VERSION=$(sed -nE 's|^FROM mcr\.microsoft\.com/playwright:(v[0-9]+\.[0-9]+\.[0-9]+)-.*$|\1|p' Dockerfile)
+
+          if [ -z "$COMFYUI_VERSION" ] || [ -z "$PLAYWRIGHT_VERSION" ]; then
+            echo "Could not read ComfyUI or Playwright version from Dockerfile" >&2
+            exit 1
+          fi
+
+          echo "comfyui=$COMFYUI_VERSION" >> "$GITHUB_OUTPUT"
+          echo "playwright=$PLAYWRIGHT_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -166,8 +180,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.tag }}
             type=semver,pattern={{major}},value=${{ steps.version.outputs.tag }}
             type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=comfyui-v0.5.1
-            type=raw,value=playwright-v1.57.0
+            type=raw,value=comfyui-${{ steps.component_versions.outputs.comfyui }}
+            type=raw,value=playwright-${{ steps.component_versions.outputs.playwright }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
