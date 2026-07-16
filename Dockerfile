@@ -17,7 +17,7 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
     uv pip install wait-for-it
 
 # Stage 2: Final image with Playwright
-FROM mcr.microsoft.com/playwright:v1.58.1-noble
+FROM mcr.microsoft.com/playwright:v1.61.1-noble
 
 # Install fonts to match GitHub Actions runner (curl/unzip needed by the fnm installer)
 RUN apt-get update && \
