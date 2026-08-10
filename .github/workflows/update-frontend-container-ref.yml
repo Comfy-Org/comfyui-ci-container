@@ -42,10 +42,11 @@ jobs:
       - name: Update container references
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Update all container references in both workflow files
           sed -i "s|ghcr.io/comfy-org/comfyui-ci-container:[0-9.]*|ghcr.io/comfy-org/comfyui-ci-container:${VERSION}|g" \
             .github/workflows/ci-tests-e2e.yaml \
-            .github/workflows/pr-update-playwright-expectations.yaml
+            .github/workflows/ci-perf-report.yaml \
+            .github/workflows/pr-update-playwright-expectations.yaml \
+            scripts/start-comfyui-e2e.sh
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
