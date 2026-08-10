@@ -9,9 +9,6 @@ on:
     secrets:
       FRONTEND_PAT:
         required: true
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -22,17 +19,14 @@ on:
 jobs:
   update-frontend:
     runs-on: ubuntu-latest
-    if: >-
-      github.repository == 'Comfy-Org/comfyui-ci-container' &&
-      (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+    if: github.repository == 'Comfy-Org/comfyui-ci-container'
     permissions:
       contents: read
-      packages: read
     steps:
       - name: Get version
         id: version
         env:
-          RAW_VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+          RAW_VERSION: ${{ inputs.version }}
         run: |
           VERSION="${RAW_VERSION#v}"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -40,27 +34,6 @@ jobs:
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Wait for container image
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          for _ in {1..60}; do
-            if timeout 5 docker manifest inspect \
-              "ghcr.io/comfy-org/comfyui-ci-container:$VERSION" >/dev/null 2>&1; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Container image $VERSION was not published within 10 minutes" >&2
-          exit 1
 
       - name: Checkout ComfyUI_frontend
         uses: actions/checkout@v4
@@ -106,6 +79,6 @@ jobs:
           body: |
             Updates CI container from `${{ steps.current.outputs.current_version }}` to `${{ steps.version.outputs.version }}`
 
-            **Triggered by:** [Tag ${{ steps.version.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ steps.version.outputs.version }})
+            **Triggered by:** [Tag v${{ steps.version.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/tree/v${{ steps.version.outputs.version }})
           labels: automation
           commit-message: "chore: bump CI container to ${{ steps.version.outputs.version }}"

@@ -204,4 +204,5 @@ jobs:
     uses: ./.github/workflows/update-frontend-container-ref.yml
     with:
       version: ${{ needs.build.outputs.version }}
-    secrets: inherit
+    secrets:
+      FRONTEND_PAT: ${{ secrets.FRONTEND_PAT }}
