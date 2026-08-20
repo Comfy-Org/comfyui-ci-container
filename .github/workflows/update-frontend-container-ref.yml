@@ -1,9 +1,14 @@
 name: "Update Frontend Container Reference"
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      FRONTEND_PAT:
+        required: true
   workflow_dispatch:
     inputs:
       version:
@@ -14,18 +19,21 @@ on:
 jobs:
   update-frontend:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    if: github.repository == 'Comfy-Org/comfyui-ci-container'
+    permissions:
+      contents: read
     steps:
       - name: Get version
         id: version
+        env:
+          RAW_VERSION: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            VERSION="${{ github.ref_name }}"
-            VERSION="${VERSION#v}"
-          else
-            VERSION="${{ inputs.version }}"
+          VERSION="${RAW_VERSION#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid container version: $RAW_VERSION" >&2
+            exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Checkout ComfyUI_frontend
         uses: actions/checkout@v4
@@ -36,16 +44,31 @@ jobs:
       - name: Get current version
         id: current
         run: |
-          CURRENT=$(grep -oP 'comfyui-ci-container:\K[0-9.]+' .github/workflows/ci-tests-e2e.yaml | head -1 || echo "unknown")
-          echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
+          CURRENT=$(grep -oP 'comfyui-ci-container:\K[0-9]+\.[0-9]+\.[0-9]+' .github/workflows/ci-tests-e2e.yaml | head -1 || true)
+          if [ -z "$CURRENT" ]; then
+            echo 'Could not determine the current frontend container version' >&2
+            exit 1
+          fi
+          echo "current_version=$CURRENT" >> "$GITHUB_OUTPUT"
 
       - name: Update container references
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          # Update all container references in both workflow files
-          sed -i "s|ghcr.io/comfy-org/comfyui-ci-container:[0-9.]*|ghcr.io/comfy-org/comfyui-ci-container:${VERSION}|g" \
-            .github/workflows/ci-tests-e2e.yaml \
+          files=(
+            .github/workflows/ci-tests-e2e.yaml
+            .github/workflows/ci-perf-report.yaml
             .github/workflows/pr-update-playwright-expectations.yaml
+          )
+          if [[ -f scripts/start-comfyui-e2e.sh ]]; then
+            files+=(scripts/start-comfyui-e2e.sh)
+          fi
+          sed -E -i \
+            "s|(ghcr.io/comfy-org/comfyui-ci-container:)[0-9]+\.[0-9]+\.[0-9]+|\1${VERSION}|g" \
+            "${files[@]}"
+          if [[ -x scripts/cicd/check-comfyui-container-version.sh ]]; then
+            scripts/cicd/check-comfyui-container-version.sh
+          fi
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -56,6 +79,6 @@ jobs:
           body: |
             Updates CI container from `${{ steps.current.outputs.current_version }}` to `${{ steps.version.outputs.version }}`
 
-            **Triggered by:** [Tag ${{ steps.version.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ steps.version.outputs.version }})
+            **Triggered by:** [Tag v${{ steps.version.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/tree/v${{ steps.version.outputs.version }})
           labels: automation
           commit-message: "chore: bump CI container to ${{ steps.version.outputs.version }}"
