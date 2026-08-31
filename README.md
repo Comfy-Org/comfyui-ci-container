@@ -7,6 +7,7 @@ A Docker container image pre-configured for running Playwright E2E tests against
 - Playwright browsers (Chromium, Firefox, WebKit)
 - Node.js via fnm — follows the caller's `.nvmrc` (Node 25 pre-installed; override at runtime with `fnm use --install-if-missing`)
 - pnpm via Corepack — follows the caller's `packageManager` field
+- zstd for GitHub Actions cache archives
 - Python 3 + pip
 - ComfyUI backend (pinned version) at `/ComfyUI`
 - All Python dependencies pre-installed (torch CPU, requirements.txt, wait-for-it)
