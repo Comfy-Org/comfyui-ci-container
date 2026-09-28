@@ -7,6 +7,7 @@ This image runs ComfyUI frontend Playwright tests without installing the backend
 - Chromium, Firefox, and WebKit from the pinned Playwright image
 - Node.js 26 through fnm
 - pnpm through Corepack
+- zstd for GitHub Actions cache archives
 - Python 3.12 and CPU-only PyTorch
 - The pinned ComfyUI backend and its Python dependencies at `/ComfyUI`
 - `wait-for-it`
