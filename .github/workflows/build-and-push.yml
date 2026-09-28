@@ -3,7 +3,12 @@ name: Build and Push Image
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -11,13 +16,11 @@ env:
 
 jobs:
   version-bump:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
       new_tag: ${{ steps.bump.outputs.new_tag }}
-      skipped: ${{ steps.bump.outputs.skipped }}
 
     steps:
       - name: Checkout repository
@@ -38,13 +41,19 @@ jobs:
 
       - name: Determine version bump type
         id: bump_type
+        env:
+          LATEST_TAG: ${{ steps.get_tag.outputs.latest_tag }}
         run: |
           # Get commit messages since last tag
-          LATEST_TAG="${{ steps.get_tag.outputs.latest_tag }}"
           if [ "$LATEST_TAG" = "v0.0.0" ]; then
             COMMITS=$(git log --oneline)
           else
             COMMITS=$(git log "${LATEST_TAG}..HEAD" --oneline)
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found after $LATEST_TAG" >&2
+            exit 1
           fi
 
           echo "Commits since $LATEST_TAG:"
@@ -64,10 +73,10 @@ jobs:
 
       - name: Bump version
         id: bump
+        env:
+          LATEST_TAG: ${{ steps.get_tag.outputs.latest_tag }}
+          BUMP_TYPE: ${{ steps.bump_type.outputs.bump_type }}
         run: |
-          LATEST_TAG="${{ steps.get_tag.outputs.latest_tag }}"
-          BUMP_TYPE="${{ steps.bump_type.outputs.bump_type }}"
-
           # Remove 'v' prefix and split into parts
           VERSION=${LATEST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
@@ -94,29 +103,26 @@ jobs:
           esac
 
           NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists" >&2
+            exit 1
+          fi
+
           echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
           echo "New tag: $NEW_TAG"
 
-          # Check if this tag already exists
-          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
-            echo "Tag $NEW_TAG already exists, skipping"
-            echo "skipped=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skipped=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Create and push tag
-        if: steps.bump.outputs.skipped != 'true'
+        env:
+          NEW_TAG: ${{ steps.bump.outputs.new_tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.bump.outputs.new_tag }}" -m "Release ${{ steps.bump.outputs.new_tag }}"
-          git push origin "${{ steps.bump.outputs.new_tag }}"
+          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+          git push origin "$NEW_TAG"
 
   build:
     runs-on: ubuntu-latest
     needs: [version-bump]
-    if: always() && (needs.version-bump.result == 'skipped' || needs.version-bump.result == 'success')
     outputs:
       version: ${{ steps.version.outputs.tag }}
     permissions:
@@ -131,14 +137,14 @@ jobs:
 
       - name: Get version tag
         id: version
+        env:
+          TAG: ${{ needs.version-bump.outputs.new_tag }}
         run: |
-          if [ -n "${{ needs.version-bump.outputs.new_tag }}" ]; then
-            echo "tag=${{ needs.version-bump.outputs.new_tag }}" >> "$GITHUB_OUTPUT"
-          else
-            # Fallback: get latest tag
-            LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
-            echo "tag=${LATEST_TAG:-v0.0.1}" >> "$GITHUB_OUTPUT"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $TAG" >&2
+            exit 1
           fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -171,7 +177,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}},value=${{ steps.version.outputs.tag }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.tag }}
             type=semver,pattern={{major}},value=${{ steps.version.outputs.tag }}
@@ -191,10 +196,8 @@ jobs:
 
   update-frontend:
     needs: [version-bump, build]
-    if: >-
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.version-bump.outputs.skipped != 'true'
+    permissions:
+      contents: read
     uses: ./.github/workflows/update-frontend-container-ref.yml
     with:
       version: ${{ needs.build.outputs.version }}
