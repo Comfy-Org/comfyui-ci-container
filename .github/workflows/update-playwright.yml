@@ -21,7 +21,7 @@ jobs:
           ref: main
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Resolve and verify version
         id: version
@@ -57,7 +57,7 @@ jobs:
         run: docker buildx build --check .
 
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.FRONTEND_PAT }}
           base: main

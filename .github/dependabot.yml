@@ -4,11 +4,14 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    allow:
-      - dependency-name: actions/*
-      - dependency-name: docker/*
     groups:
       first-party-actions:
         patterns:
+          - actions/*
+          - docker/*
+      third-party-actions:
+        patterns:
+          - '*'
+        exclude-patterns:
           - actions/*
           - docker/*
