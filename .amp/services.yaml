@@ -1,0 +1,3 @@
+services:
+  docker:
+    command: sudo dockerd --host=unix:///var/run/docker.sock --group root

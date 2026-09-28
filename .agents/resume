@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if docker info >/dev/null 2>&1; then
+  exit 0
+fi
+
+echo "[resume] Starting the supervised Docker daemon"
+amp orb services ensure >/dev/null
+
+for _ in {1..20}; do
+  docker info >/dev/null 2>&1 && exit 0
+  sleep 0.25
+done
+
+echo "[resume] Docker daemon did not become ready" >&2
+exit 1
