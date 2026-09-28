@@ -197,7 +197,9 @@ jobs:
   update-frontend:
     needs: [version-bump, build]
     permissions:
+      actions: read
       contents: read
+      packages: read
     uses: ./.github/workflows/update-frontend-container-ref.yml
     with:
       version: ${{ needs.build.outputs.version }}
