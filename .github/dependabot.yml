@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      first-party-actions:
+        patterns:
+          - actions/*
+          - docker/*
+      third-party-actions:
+        patterns:
+          - '*'
+        exclude-patterns:
+          - actions/*
+          - docker/*

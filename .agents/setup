@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+step_start=$SECONDS
+echo "[setup] Checking Docker toolchain"
+
+packages=()
+command -v docker >/dev/null 2>&1 || packages+=(docker-ce-cli)
+command -v dockerd >/dev/null 2>&1 || packages+=(docker-ce)
+docker buildx version >/dev/null 2>&1 || packages+=(docker-buildx-plugin)
+
+if ((${#packages[@]})); then
+  echo "[setup] Installing ${packages[*]}"
+  sudo apt-get update
+  sudo apt-get install -y "${packages[@]}"
+else
+  echo "[setup] Docker and Buildx are already installed"
+fi
+
+docker --version
+docker buildx version
+printf '[setup] Complete in %ss\n' "$((SECONDS - step_start))"

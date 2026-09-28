@@ -1,0 +1,13 @@
+version: 3
+
+files:
+  - pattern: .github/workflows/*.yaml
+  - pattern: .github/workflows/*.yml
+  - pattern: .github/actions/**/*.yaml
+  - pattern: .github/actions/**/*.yml
+
+ignore_actions:
+  - name: actions/checkout
+    ref: v7
+  - name: actions/download-artifact
+    ref: v8

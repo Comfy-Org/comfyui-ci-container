@@ -1,0 +1,72 @@
+name: Update Playwright
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Playwright version (for example, 1.63.0). Leave blank for latest.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Resolve and verify version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          RAW_VERSION="$REQUESTED_VERSION"
+          if [ -z "$RAW_VERSION" ]; then
+            RAW_VERSION=$(gh api repos/microsoft/playwright/releases/latest --jq '.tag_name')
+          fi
+
+          VERSION="${RAW_VERSION#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid Playwright version: $RAW_VERSION" >&2
+            exit 1
+          fi
+
+          docker buildx imagetools inspect \
+            "mcr.microsoft.com/playwright:v${VERSION}-noble" >/dev/null
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Update Dockerfile
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -E -i \
+            "s|(FROM mcr\.microsoft\.com/playwright:)v[0-9]+\.[0-9]+\.[0-9]+(-noble)|\1v${VERSION}\2|" \
+            Dockerfile
+          grep -Fx "FROM mcr.microsoft.com/playwright:v${VERSION}-noble" Dockerfile
+
+      - name: Validate Dockerfile
+        run: docker buildx build --check .
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.FRONTEND_PAT }}
+          base: main
+          branch: automation/playwright-${{ steps.version.outputs.version }}
+          delete-branch: true
+          title: "chore: update Playwright to ${{ steps.version.outputs.version }}"
+          commit-message: "chore: update Playwright to ${{ steps.version.outputs.version }}"
+          body: |
+            Updates the Playwright image to `v${{ steps.version.outputs.version }}-noble`.
+
+            After this PR merges, the release workflow publishes the container and opens the ComfyUI_frontend update PR. Update `@playwright/test` to `${{ steps.version.outputs.version }}` in that frontend PR before merging it.
+          labels: automation
