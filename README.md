@@ -1,26 +1,26 @@
-# ComfyUI Test Action
+# ComfyUI CI container
 
-A Docker container image pre-configured for running Playwright E2E tests against ComfyUI.
+This image runs ComfyUI frontend Playwright tests without installing the backend and browser dependencies in every CI shard.
 
-## What's Included
+## Included software
 
-- Playwright browsers (Chromium, Firefox, WebKit)
-- Node.js via fnm — follows the caller's `.nvmrc` (Node 25 pre-installed; override at runtime with `fnm use --install-if-missing`)
-- pnpm via Corepack — follows the caller's `packageManager` field
-- Python 3 + pip
-- ComfyUI backend (pinned version) at `/ComfyUI`
-- All Python dependencies pre-installed (torch CPU, requirements.txt, wait-for-it)
+- Chromium, Firefox, and WebKit from the pinned Playwright image
+- Node.js 26 through fnm
+- pnpm through Corepack
+- Python 3.12 and CPU-only PyTorch
+- The pinned ComfyUI backend and its Python dependencies at `/ComfyUI`
+- `wait-for-it`
 
-## Usage
+## Use the image
 
-Use this image as a container in your GitHub Actions workflow:
+Replace `<version>` with a published container version. The container's Playwright version must match the caller's `@playwright/test` version.
 
 ```yaml
 jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/comfy-org/comfyui-ci-container:v1
+      image: ghcr.io/comfy-org/comfyui-ci-container:<version>
     strategy:
       matrix:
         shard: [1, 2, 3, 4]
@@ -37,46 +37,21 @@ jobs:
         run: |
           ln -sf /ComfyUI ./ComfyUI
           cp -r ./tools/devtools/* /ComfyUI/custom_nodes/ComfyUI_devtools/
-          cd /ComfyUI && python3 main.py --cpu --multi-user --front-end-root $GITHUB_WORKSPACE/dist &
+          cd /ComfyUI
+          python3 main.py --cpu --multi-user --front-end-root "$GITHUB_WORKSPACE/dist" &
           wait-for-it --service 127.0.0.1:8188 -t 600
 
-      - name: Install frontend deps
-        run: pnpm install
+      - name: Install frontend dependencies
+        uses: ./.github/actions/setup-frontend
 
       - name: Run tests
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
 ```
 
-## Image Tags
-
-- `ghcr.io/comfy-org/comfyui-ci-container:latest` - Latest build
-- `ghcr.io/comfy-org/comfyui-ci-container:0.0.3` - Stable v0.0.3
-- `ghcr.io/comfy-org/comfyui-ci-container:comfyui-v0.5.1` - Specific ComfyUI version
-
-## Time Savings
-
-| Step | Before | After |
-|------|--------|-------|
-| Clone ComfyUI | ~10s | 0s |
-| pip install | ~90s | 0s |
-| Setup Playwright | ~30s | 0s |
-| **Total saved** | **~130s** | **per shard** |
-
-## Local Development
+## Build locally
 
 ```bash
-# Build the image
 docker build -t comfyui-test:local .
-
-# Run interactively
-docker run -it --rm -v $(pwd):/app comfyui-test:local bash
-
-# Test ComfyUI is installed
+docker run -it --rm -v "$(pwd):/app" comfyui-test:local bash
 docker run --rm comfyui-test:local python3 -c "import torch; print(torch.__version__)"
 ```
-
-## Updating ComfyUI Version
-
-1. Update `COMFYUI_VERSION` in Dockerfile
-2. Push to trigger rebuild
-3. Tag with new version

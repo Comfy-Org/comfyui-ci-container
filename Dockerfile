@@ -17,7 +17,7 @@ RUN uv pip install torch torchvision torchaudio --index-url https://download.pyt
     uv pip install wait-for-it
 
 # Stage 2: Final image with Playwright
-FROM mcr.microsoft.com/playwright:v1.61.1-noble
+FROM mcr.microsoft.com/playwright:v1.63.0-noble
 
 # Install fonts to match GitHub Actions runner (curl/unzip needed by the fnm installer)
 RUN apt-get update && \
@@ -26,12 +26,12 @@ RUN apt-get update && \
       fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-ubuntu && \
     rm -rf /var/lib/apt/lists/*
 
-# Node follows the caller's .nvmrc via fnm (25 pre-installed as the offline
+# Node follows the caller's .nvmrc via fnm (26 pre-installed as the offline
 # default; .nvmrc wins at runtime via `fnm use`). Corepack manages pnpm from the
-# repo's packageManager field. Node 25 no longer bundles Corepack, so install it.
+# repo's packageManager field. Node 26 no longer bundles Corepack, so install it.
 ENV FNM_DIR=/opt/fnm PATH="/opt/fnm/aliases/default/bin:$PATH"
 RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir /usr/local/bin --skip-shell \
- && fnm install 25 && fnm default 25 \
+ && fnm install 26 && fnm default 26 \
  && npm i -g corepack@latest && corepack enable \
  && chmod -R a+w /opt/fnm
 
