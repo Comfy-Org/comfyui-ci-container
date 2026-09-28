@@ -36,7 +36,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Checkout ComfyUI_frontend
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Comfy-Org/ComfyUI_frontend
           token: ${{ secrets.FRONTEND_PAT }}
