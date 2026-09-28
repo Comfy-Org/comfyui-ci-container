@@ -41,11 +41,8 @@ jobs:
           python3 main.py --cpu --multi-user --front-end-root "$GITHUB_WORKSPACE/dist" &
           wait-for-it --service 127.0.0.1:8188 -t 600
 
-      - name: Install frontend deps
-        run: |
-          eval "$(fnm env --shell bash)"
-          fnm use --install-if-missing
-          pnpm install --frozen-lockfile
+      - name: Install frontend dependencies
+        uses: ./.github/actions/setup-frontend
 
       - name: Run tests
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
