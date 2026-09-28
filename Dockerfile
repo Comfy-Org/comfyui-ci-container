@@ -22,7 +22,7 @@ FROM mcr.microsoft.com/playwright:v1.61.1-noble
 # Install fonts to match GitHub Actions runner (curl/unzip needed by the fnm installer)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl unzip \
+      ca-certificates curl unzip zstd \
       fonts-dejavu-core fonts-noto-core fonts-noto-cjk fonts-ubuntu && \
     rm -rf /var/lib/apt/lists/*
 
