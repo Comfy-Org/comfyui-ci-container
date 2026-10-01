@@ -19,6 +19,6 @@ Run `gh workflow run update-playwright.yml` to update to the latest stable relea
 4. Run `docker buildx build --check .`.
 5. Open the container PR against `main`.
 
-After the container PR merges, the main workflow creates a version tag and publishes the image. ComfyUI_frontend's `ci-update-comfyui-container.yaml` workflow checks hourly for a newer published release and opens the frontend PR. Do not update the frontend image references before that image exists. To open the frontend PR sooner, run `gh workflow run ci-update-comfyui-container.yaml -R Comfy-Org/ComfyUI_frontend`. Pass `-f version=0.0.25` to select a specific published version.
+After the container PR merges, the main workflow creates a version tag and publishes the image. After the image is published, run `gh workflow run ci-update-comfyui-container.yaml -R Comfy-Org/ComfyUI_frontend` to open the frontend PR. It uses the newest release by default; pass `-f version=0.0.25` to select a specific published version. The workflow fails if the image is not published yet, so do not run it before the release workflow finishes.
 
 When the container changes Playwright, the frontend PR also updates the Playwright images and the `@playwright/test` catalog version and lockfile to match. Playwright requires exact package and browser-image versions. Push any type or screenshot fixes to that PR; the workflow does not overwrite an existing PR.

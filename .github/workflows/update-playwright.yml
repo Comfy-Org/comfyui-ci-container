@@ -14,6 +14,8 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    # Push the update branch and open its PR. Requires the repository setting
+    # "Allow GitHub Actions to create and approve pull requests".
     permissions:
       contents: write
       pull-requests: write
@@ -70,5 +72,5 @@ jobs:
           body: |
             Updates the Playwright image to `v${{ steps.version.outputs.version }}-noble`.
 
-            After this PR merges, the release workflow publishes the container. Within an hour, ComfyUI_frontend's `CI: Update ComfyUI CI Container` workflow opens a PR that moves to the new container and updates `@playwright/test` to `${{ steps.version.outputs.version }}`.
+            After this PR merges and the release workflow publishes the container, run `gh workflow run ci-update-comfyui-container.yaml -R Comfy-Org/ComfyUI_frontend`. It opens a frontend PR that moves to the new container and updates `@playwright/test` to `${{ steps.version.outputs.version }}`.
           labels: automation
