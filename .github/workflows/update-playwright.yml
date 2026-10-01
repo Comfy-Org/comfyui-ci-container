@@ -14,6 +14,9 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -59,7 +62,6 @@ jobs:
       - name: Create pull request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          token: ${{ secrets.FRONTEND_PAT }}
           base: main
           branch: automation/playwright-${{ steps.version.outputs.version }}
           delete-branch: true
@@ -68,5 +70,5 @@ jobs:
           body: |
             Updates the Playwright image to `v${{ steps.version.outputs.version }}-noble`.
 
-            After this PR merges, the release workflow publishes the container and opens the ComfyUI_frontend update PR. Update `@playwright/test` to `${{ steps.version.outputs.version }}` in that frontend PR before merging it.
+            After this PR merges, the release workflow publishes the container. Within an hour, ComfyUI_frontend's `CI: Update ComfyUI CI Container` workflow opens a PR that moves to the new container and updates `@playwright/test` to `${{ steps.version.outputs.version }}`.
           labels: automation
