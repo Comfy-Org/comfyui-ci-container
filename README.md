@@ -1,5 +1,10 @@
 # ComfyUI CI container
 
+> [!IMPORTANT]
+> The ComfyUI CI container is now part of the [ComfyUI_frontend monorepo](https://github.com/Comfy-Org/ComfyUI_frontend).
+> This repository is no longer maintained. See the [CI container documentation](https://github.com/Comfy-Org/ComfyUI_frontend/tree/main/tools/ci-container) for current usage, development, and publishing instructions.
+> Report issues and submit pull requests in the monorepo. The instructions below describe the legacy standalone container.
+
 This image runs ComfyUI frontend Playwright tests without installing the backend and browser dependencies in every CI shard.
 
 ## Included software
